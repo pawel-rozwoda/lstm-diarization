@@ -19,7 +19,7 @@ import argparse
 from psycopg2.extensions import AsIs
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from db_credentials import DB, USER, PASSWORD, HOST, PORT
+from db_credentials import POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT
 
 
 parser = argparse.ArgumentParser()
@@ -30,7 +30,7 @@ args = parser.parse_args()
 db_name = args.data_source[:-1]
 
 print("Database opened successfully")
-con = psycopg2.connect(database=DB, user=USER, password=PASSWORD, host=HOST, port=PORT) 
+con = psycopg2.connect(database=POSTGRES_DB, user=POSTGRES_USER, password=POSTGRES_PASSWORD, host=POSTGRES_HOST, port=POSTGRES_PORT) 
 con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 cursor = con.cursor()
 
@@ -41,7 +41,7 @@ con.commit()
 con.close()
 
 
-con2 = psycopg2.connect(database=db_name, user=USER, password=PASSWORD, host=HOST, port=PORT) 
+con2 = psycopg2.connect(database=db_name, user=POSTGRES_USER, password=POSTGRES_PASSWORD, host=POSTGRES_HOST, port=POSTGRES_PORT) 
 cursor2 = con2.cursor()
 cursor2.execute('''CREATE TABLE if not exists speakers (ID smallint, speaker varchar(10) );''')
 con2.commit()
@@ -61,11 +61,10 @@ else:
     sys.exit('no appropriate audio type')
 
 SOURCE = data_source + audio_type
-DESTINATION = data_source + 'intermediate/'
 sampling_rate=16000
 
 print('src: ', SOURCE)
-print('destination: ',DESTINATION)
+# print('destination: ',DESTINATION)
 print('audio type', audio_type)
 print('threads: ', args.threads)
 print('sampling_rate: ', sampling_rate)
@@ -75,7 +74,7 @@ print('data processing on: ', SOURCE)
 
 
 def process_speaker(speaker_with_id): 
-    con = psycopg2.connect(database=db_name, user=USER, password=PASSWORD, host=HOST, port=PORT)
+    con = psycopg2.connect(database=db_name, user=POSTGRES_USER, password=POSTGRES_PASSWORD, host=POSTGRES_HOST, port=POSTGRES_PORT)
     cur = con.cursor()
     idx, speaker = speaker_with_id
     postgre_args ={"ID": idx, "speaker":speaker} 
@@ -129,11 +128,11 @@ speakers = os.listdir(SOURCE)
 speakers_with_id = [(i, speaker) for i, speaker in enumerate(speakers)]
 
 
-if os.path.exists(DESTINATION) and os.path.isdir(DESTINATION):
-    shutil.rmtree(DESTINATION) 
+# if os.path.exists(DESTINATION) and os.path.isdir(DESTINATION):
+    # shutil.rmtree(DESTINATION) 
 
-os.makedirs(DESTINATION)
-os.makedirs(DESTINATION + 'files/')
+# os.makedirs(DESTINATION)
+# os.makedirs(DESTINATION + 'files/')
 
 
 if args.threads==1:
