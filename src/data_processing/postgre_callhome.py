@@ -1,3 +1,6 @@
+"""
+This script connects to database and stores MFCC feats of CALLHOME dataset which is used as test set in this project.
+"""
 import sys
 sys.path.append('../')
 from db_credentials import USER, PASSWORD, DB, PORT, HOST

@@ -1,3 +1,8 @@
+"""
+This script connects to database and stores MFCC feats out of VOX celeb 2 dataset.
+Note that database must be active.
+"""
+
 import sys
 sys.path.append('../')
 from config import DATA_PATH
@@ -93,7 +98,8 @@ def process_speaker(speaker_with_id):
     con.commit()
     cur.execute('''CREATE TABLE %(table_name)s
           (ID SERIAL PRIMARY KEY,
-          feats float[10][40]);''', {"table_name":AsIs(table_name) })
+          feats float[40]);''', {"table_name":AsIs(table_name) })
+          # feats float[10][40]);''', {"table_name":AsIs(table_name) })
     con.commit()
 
     performances = os.listdir(SOURCE + speaker)
@@ -107,14 +113,15 @@ def process_speaker(speaker_with_id):
             audio_filtered = vad_gmm.filter_non_speech(signal=audio, sampling_rate=sampling_rate)
             
             feats = torch.Tensor(logmel_feats(signal=audio_filtered, sampling_rate=sampling_rate))
-            feats_splitted = torch.split(feats, 10)
+            # feats_splitted = torch.split(feats, 10)
 
-            for feat in feats_splitted:
-                if feat.shape[0]==10:
-                    feat = feat.tolist() 
-                    postgre_args ={"table_name": AsIs(table_name), "feat":feat} 
-                    cur.execute("""INSERT INTO %(table_name)s (feats) 
-                            VALUES(%(feat)s)""", postgre_args)
+            # for feat in feats_splitted:
+            for feat in feats:
+                # if feat.shape[0]==10:
+                feat = feat.tolist() 
+                postgre_args ={"table_name": AsIs(table_name), "feat":feat} 
+                cur.execute("""INSERT INTO %(table_name)s (feats) 
+                        VALUES(%(feat)s)""", postgre_args)
 
 
             con.commit()

@@ -48,7 +48,7 @@ print('num_workers: ', args.num_workers)
 input_dim = 40
 hidden_dim = 768
 num_layers = 3 
-batch_size = 64
+batch_size = 16
 
 
 num_workers=args.num_workers
