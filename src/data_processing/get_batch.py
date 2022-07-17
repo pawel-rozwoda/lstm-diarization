@@ -8,15 +8,26 @@ import torch
 class Get_Batch(Dataset):
 
     def sorted_length_speakers(self):
+        """
+        returns list of speaker_ids in descending speech length like: 
+        ['mfcc_5', 'mfcc_47', 'mfcc_12', ... etc]
+
+        lengths = [4845, 4756, 4512, 4205, 4123, ... ] 
+        batch_n = [0,0,0,0,0,1,1,1,1,2,2,3]
+        """
+
+
         self.cursor.execute("SELECT table_name FROM information_schema.tables \
                 WHERE table_name like 'mfcc_%' ORDER BY table_name;")
-        x=self.cursor.fetchall()
-        self.d=dict()
-        for i in x:
-            self.cursor.execute("SELECT count(*) from " + i[0])
-            res = self.cursor.fetchone()
-            self.d[i[0]] = res[0]
-        aux = {k: v for k, v in sorted(self.d.items(), key=lambda item: item[1], reverse=True)}
+        speaker_ids=[i[0] for i in self.cursor.fetchall()]
+        print('speaker ids', speaker_ids)
+        self.lengths=dict()
+        for speaker in speaker_ids:
+            self.cursor.execute("SELECT count(*) from " + speaker)
+            speaker_length = self.cursor.fetchone()[0]
+            self.lengths[speaker] = speaker_length
+        # aux1 = {k: v for k, v in sorted(self.lengths.items(), key=lambda item: item[1], reverse=True)}
+        aux = [i[0] for i in sorted(self.lengths.items(), key=lambda item: item[1], reverse=True)]
         return list(aux)
 
     def prepare_batches(self, sorted_speakers):
@@ -26,7 +37,7 @@ class Get_Batch(Dataset):
             self.bucket.append( sorted_speakers[i*self.batch_size : i * self.batch_size + self.batch_size] )
             last = self.bucket[-1][-1]
             self.bucket_bottom.append(s)
-            last_idx = self.d[last] // self.occ_len
+            last_idx = self.lengths[last] // self.occ_len
             s += last_idx
 
             for j in range(last_idx):
@@ -36,6 +47,12 @@ class Get_Batch(Dataset):
         pass
 
     def __init__(self, con, batch_size, occ_len):
+        """
+        bucket: [
+                 [mfcc_56, mfcc_41, mfcc_77, mfcc_21] # four speakers with longest speech
+                 [ ...                              ]
+                ]
+        """
         self.batch_size = batch_size
         self.occ_len = occ_len
         self.con = con
@@ -52,16 +69,23 @@ class Get_Batch(Dataset):
 
     def __getitem__(self, idx):
         b = self.bucket[self.batch_n[idx]]
+        print(f'bucket  bbb {b}')
+        print(f'bucket should be {self.bucket[0]}')
         res = []
         bottom = self.bucket_bottom[self.batch_n[idx]]
+        print(f'bottom: {bottom}')
         # print('bottom ', bottom)
         # print('bottom - idx', idx - bottom)
         for i in b:
-            # self.cursor.execute('select feats from ' + i + ' where ID = ' + str(idx - bottom))
-            self.cursor.execute('select feats from ' + i + ' where ID Between ' + str(idx) + ' and ' + str(idx + self.occ_len - 1) )
+            print(f'range: i: range = (idx - bottom {idx} ,  {idx + self.occ_len - 1})')
+            self.cursor.execute('select feats from ' + i + ' where ID Between ' + str(idx - self.bucket_bottom[self.batch_n[idx]]) + ' and ' + str(idx-self.bucket_bottom[self.batch_n[idx]] + self.occ_len))
+            # self.cursor.execute('select feats from ' + i + ' where ID Between ' + str(idx) + ' and ' + str(idx + self.occ_len -1) )
             res.append(self.cursor.fetchall())
-            r = torch.Tensor(res).reshape(self.batch_size, self.occ_len, -1)
             # r = torch.Tensor(res).reshape(self.batch_size, -1, 40)
+        auxiliary_r = torch.Tensor(res)
+        print('aux shape', auxiliary_r.shape)
+        r = torch.Tensor(res).reshape(self.batch_size, self.occ_len, -1)
+        # r = torch.tensor(res)
         return r
     
     def __len__(self):

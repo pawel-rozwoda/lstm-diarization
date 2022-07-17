@@ -3,7 +3,7 @@ This script connects to database and stores MFCC feats of CALLHOME dataset which
 """
 import sys
 sys.path.append('../')
-from db_credentials import USER, PASSWORD, DB, PORT, HOST
+from db_credentials import POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_PORT, POSTGRES_HOST
 from config import DATA_PATH
 import pandas as pd
 import os
@@ -33,7 +33,7 @@ args = parser.parse_args()
 db_name = args.data_source[:-1]
 
 print("Database opened successfully")
-con = psycopg2.connect(database=DB, user=USER, password=PASSWORD, host=HOST, port=PORT) 
+con = psycopg2.connect(database=POSTGRES_DB, user=POSTGRES_USER, password=POSTGRES_PASSWORD, host=POSTGRES_HOST, port=POSTGRES_PORT) 
 con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 cursor = con.cursor()
 
@@ -72,7 +72,7 @@ def process_callhome_talk(filename):
 
     base=os.path.basename(filename)
     base = os.path.splitext(base)[0]
-    con = psycopg2.connect(database=db_name, user=USER, password=PASSWORD, host=HOST, port=PORT)
+    con = psycopg2.connect(database=db_name, user=POSTGRES_USER, password=POSTGRES_PASSWORD, host=POSTGRES_HOST, port=POSTGRES_PORT)
     cur = con.cursor()
 
     """vad_gmm setup"""
