@@ -17,7 +17,7 @@ VOX_1_TEST_PATH = DATA_PATH + 'vox_1_test_data/'
 VOX_1_PATH = DATA_PATH + 'vox_1_data/'
 VOX_2_PATH = DATA_PATH + 'vox_2_data/'
 GMM_FILE = DATA_PATH + 'gmm/final_gmm.pkl'
-GMM_TRAIN = DATA_PATH + 'gmm/train/'
+GMM_TRAIN = DATA_PATH + 'vox_1_test/'
 
 
 EVAL_WAV_DIRECTORY = DATA_PATH + 'callhome/wav/'
