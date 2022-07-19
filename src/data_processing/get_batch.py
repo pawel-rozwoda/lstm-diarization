@@ -20,13 +20,11 @@ class Get_Batch(Dataset):
         self.cursor.execute("SELECT table_name FROM information_schema.tables \
                 WHERE table_name like 'mfcc_%' ORDER BY table_name;")
         speaker_ids=[i[0] for i in self.cursor.fetchall()]
-        print('speaker ids', speaker_ids)
         self.lengths=dict()
         for speaker in speaker_ids:
             self.cursor.execute("SELECT count(*) from " + speaker)
             speaker_length = self.cursor.fetchone()[0]
             self.lengths[speaker] = speaker_length
-        # aux1 = {k: v for k, v in sorted(self.lengths.items(), key=lambda item: item[1], reverse=True)}
         aux = [i[0] for i in sorted(self.lengths.items(), key=lambda item: item[1], reverse=True)]
         return list(aux)
 
@@ -69,23 +67,13 @@ class Get_Batch(Dataset):
 
     def __getitem__(self, idx):
         b = self.bucket[self.batch_n[idx]]
-        print(f'bucket  bbb {b}')
-        print(f'bucket should be {self.bucket[0]}')
+        print(f'DEBUG: bucket  {b}')
         res = []
         bottom = self.bucket_bottom[self.batch_n[idx]]
-        print(f'bottom: {bottom}')
-        # print('bottom ', bottom)
-        # print('bottom - idx', idx - bottom)
         for i in b:
-            print(f'range: i: range = (idx - bottom {idx} ,  {idx + self.occ_len - 1})')
-            self.cursor.execute('select feats from ' + i + ' where ID Between ' + str(idx - self.bucket_bottom[self.batch_n[idx]]) + ' and ' + str(idx-self.bucket_bottom[self.batch_n[idx]] + self.occ_len))
-            # self.cursor.execute('select feats from ' + i + ' where ID Between ' + str(idx) + ' and ' + str(idx + self.occ_len -1) )
+            self.cursor.execute('select feats from ' + i + ' where ID Between ' + str(1+idx - self.bucket_bottom[self.batch_n[idx]]) + ' and ' + str(idx-self.bucket_bottom[self.batch_n[idx]] + self.occ_len ))
             res.append(self.cursor.fetchall())
-            # r = torch.Tensor(res).reshape(self.batch_size, -1, 40)
-        auxiliary_r = torch.Tensor(res)
-        print('aux shape', auxiliary_r.shape)
         r = torch.Tensor(res).reshape(self.batch_size, self.occ_len, -1)
-        # r = torch.tensor(res)
         return r
     
     def __len__(self):
