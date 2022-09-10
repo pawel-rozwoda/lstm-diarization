@@ -31,12 +31,15 @@ class Get_Batch(Dataset):
     def prepare_batches(self, sorted_speakers):
         s=0
         for i in range(len(sorted_speakers)//self.batch_size):
-            print(i)
-            self.bucket.append( sorted_speakers[i*self.batch_size : i * self.batch_size + self.batch_size] )
+            bucket_speakers = sorted_speakers[i*self.batch_size : (i+1)*self.batch_size]
+            self.bucket.append( bucket_speakers )
             last = self.bucket[-1][-1]
+            print(f"init -> bucket: {bucket_speakers}")
             self.bucket_bottom.append(s)
             last_idx = self.lengths[last] // self.occ_len
             s += last_idx
+            print(f"last: {last}, len = {last_idx} ")
+            print()
 
             for j in range(last_idx):
                 self.batch_n.append(i)
@@ -63,15 +66,31 @@ class Get_Batch(Dataset):
         sorted_speakers = self.sorted_length_speakers()
         self.prepare_batches(sorted_speakers)
 
+    def _get_batch(self, idx):
+        return self.batch_n[idx]
+
+    def _get_bottom(self, idx):
+        return self.bucket_bottom[self.batch_n[idx]]
 
 
     def __getitem__(self, idx):
         b = self.bucket[self.batch_n[idx]]
         print(f'DEBUG: bucket  {b}')
         res = []
-        bottom = self.bucket_bottom[self.batch_n[idx]]
+        bottom = self._get_bottom(idx)
+        print(f"bottom: {bottom}")
+        idx_from = str(1 + (idx*self.occ_len) - (bottom*self.occ_len))
+        idx_to = str((idx*self.occ_len) + self.occ_len - (bottom*self.occ_len))
+        # previous_bucket_len = sum(self.bucket_bottom(i) for i in range(self.batch_n[idx]))
+        # print(f"previous_len: {previous_bucket_len}")
+        print(f"buckets: {self.bucket_bottom}")
+                                
+        print(f"from: {idx_from}; to: {idx_to}")
+
         for i in b:
-            self.cursor.execute('select feats from ' + i + ' where ID Between ' + str(1+idx - self.bucket_bottom[self.batch_n[idx]]) + ' and ' + str(idx-self.bucket_bottom[self.batch_n[idx]] + self.occ_len ))
+            print(f'selected table:{i}')
+            self.cursor.execute('select feats from ' + i + ' where ID Between ' + idx_from + ' and ' + idx_to)
+
             res.append(self.cursor.fetchall())
         r = torch.Tensor(res).reshape(self.batch_size, self.occ_len, -1)
         return r
