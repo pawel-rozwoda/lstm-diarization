@@ -20,8 +20,8 @@ from tqdm import tqdm
 torch.manual_seed(2)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--epochs", type=int, default=1000)
-parser.add_argument("--num_workers", type=int)
+parser.add_argument("--epochs", type=int, default=10)
+parser.add_argument("--num_workers", type=int, default=16)
 parser.add_argument("--dataset", type=str)
 parser.add_argument("--optional_validation", type=str, default=None)
 parser.add_argument('--warm_restart', dest='warm_restart', action='store_true')
@@ -50,20 +50,23 @@ if not os.path.exists(out_dir):
 print('warm restart ', args.warm_restart)
 print('num_workers: ', args.num_workers) 
 
-train_dataset = MFCC_Dataset(db_name='vox_1_test', batch_size=8, occ_len=60)
-split_index = 82
+# train_dataset = MFCC_Dataset(db_name='vox_1_test', batch_size=8, occ_len=60)
+train_dataset = MFCC_Dataset(db_name='vox_1', batch_size=64, occ_len=400)
+train_loader = DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=16)
+split_index = train_dataset.bucket_bottom[-2]
+print(f"split on index {split_index}") 
 print(f"len: {len(train_dataset)}")
 
 
 model = LSTM_Diarization(input_dim=input_dim, hidden_dim=hidden_dim, num_layers=num_layers, init_w=10., init_b=-5.)
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+print('Using device:', device)
 model = model.to(device)
 model.train=True
-most_recent_validation = 10.
+most_recent_validation = 17.
 criterion = CELoss(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-print('Using device:', device)
 
 with open(out_dir + 'info.txt', "w") as myfile:
     myfile.write('param w: ' + str(model.w) + '\n' ) 
@@ -80,10 +83,15 @@ if args.warm_restart:
 
 
 for epoch in tqdm(range(args.epochs)):
+    # for k in train_loader:
+        # print(k.shape)
 
-    for j in tqdm(range(split_index)):
-        batch = train_dataset[j]
+    # for j in tqdm(range(split_index)):
+    for batch in tqdm(train_loader):
+        # batch = train_dataset[j]
+        batch = batch.squeeze()
         batch = batch.to(device) 
+        # print(f"get_batch shape {batch.shape}")
         # batch = batch.squeeze(0)
         pred = model(batch)
 

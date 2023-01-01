@@ -1,13 +1,13 @@
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 import os
 from torch import randint 
 import psycopg2
 from db_credentials import POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_HOST
 import sys 
-# from get_batch import Get_Batch
 sys.path.append('../')
+from threading import Thread
 
 
 def dataset_split(*, dataset, train_partition):
@@ -67,6 +67,7 @@ class MFCC_Dataset(Dataset):
     def _get_bottom(self, idx):
         return self.bucket_bottom[self.batch_n[idx]]
 
+
     def __init__(self, db_name, batch_size, occ_len):
         """
         bucket: [
@@ -76,6 +77,7 @@ class MFCC_Dataset(Dataset):
         """
 
         con = psycopg2.connect(database=db_name, user=POSTGRES_USER, password=POSTGRES_PASSWORD, host=POSTGRES_HOST, port=POSTGRES_PORT) 
+        self.db_name=db_name
 
         self.batch_size = batch_size
         self.occ_len = occ_len
@@ -92,6 +94,10 @@ class MFCC_Dataset(Dataset):
 
 
     def __getitem__(self, idx):
+        
+        aux_con = psycopg2.connect(database=self.db_name, user=POSTGRES_USER, password=POSTGRES_PASSWORD, host=POSTGRES_HOST, port=POSTGRES_PORT) 
+        aux_cursor = aux_con.cursor()
+
         if idx<0:
             idx = self.batch_count + idx
         b = self.bucket[self.batch_n[idx]]
@@ -108,12 +114,19 @@ class MFCC_Dataset(Dataset):
         # print(f"from: {idx_from}; to: {idx_to}")
 
         for i in b:
-            # print(f'selected table:{i}')
-            self.cursor.execute('select feats from ' + i + ' where ID Between ' + idx_from + ' and ' + idx_to)
 
-            res.append(self.cursor.fetchall())
+            # self.cursor.execute('select feats from ' + i + ' where ID Between ' + idx_from + ' and ' + idx_to)
+            aux_cursor.execute('select feats from ' + i + ' where ID Between ' + idx_from + ' and ' + idx_to)
+
+            # res.append(self.cursor.fetchall())
+            res.append(aux_cursor.fetchall())
+
+        # print(f"results {res}")
         r = torch.Tensor(res).reshape(self.batch_size, self.occ_len, -1)
+        aux_con.close()
         return r
+
+
 
     def __len__(self):
         return self.batch_count
