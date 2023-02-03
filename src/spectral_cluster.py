@@ -74,7 +74,9 @@ def row_wise_normalize(s_matrix):
 
     
 def cluster_affinity(affinity, dtype=np.bool):
-    labels =  spectral_clustering(affinity, n_clusters=2, n_components=2, affinity='precomputed', random_state=0) 
+    labels =  spectral_clustering(affinity, n_clusters=2, n_components=2, random_state=0) 
+    # labels =  spectral_clustering(affinity, n_clusters=2, n_components=2, affinity='precomputed', random_state=0) 
+    # labels =  spectral_clustering(n_clusters=2, n_components=2, affinity='precomputed', random_state=0) 
     if dtype == np.bool:
         speakers = np.unique(labels)
         result = np.zeros((speakers.shape[0], labels.shape[0]), dtype=np.bool)

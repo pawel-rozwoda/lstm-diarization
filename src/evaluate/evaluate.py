@@ -36,6 +36,8 @@ with open(GMM_FILE, 'rb') as fid:
 
 model_device = 'cpu'
 affinity_device='cpu'
+# model_device = 'cuda:0'
+# affinity_device='cuda:0'
 model = torch.load(MODEL_FILE, map_location=model_device)
 model.window_size=40
 model.shift=20

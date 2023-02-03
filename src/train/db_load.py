@@ -133,4 +133,4 @@ class MFCC_Dataset(Dataset):
 
     def __del__(self):
         print("closing connection to db")
-        self.con.close()
+        # self.con.close()
