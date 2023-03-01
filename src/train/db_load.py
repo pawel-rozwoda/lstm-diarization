@@ -9,17 +9,6 @@ import sys
 sys.path.append('../')
 from threading import Thread
 
-
-def dataset_split(*, dataset, train_partition):
-
-    train_size = int(train_partition * len(dataset))
-    validation_size = len(dataset) - train_size
-
-
-    train_dataset, validation_dataset = torch.utils.data.random_split(dataset, [train_size, validation_size]) 
-
-    return train_dataset, validation_dataset
-
 class MFCC_Dataset(Dataset):
     def sorted_length_speakers(self):
         """
@@ -67,6 +56,14 @@ class MFCC_Dataset(Dataset):
     def _get_bottom(self, idx):
         return self.bucket_bottom[self.batch_n[idx]]
 
+    def _train_subset(self):
+        result = []
+        for i, bottom in enumerate(self.bucket_bottom):
+            for j in range(10):
+                result.append(self._get_batch(bottom + j))
+
+            
+
 
     def __init__(self, db_name, batch_size, occ_len):
         """
@@ -105,32 +102,19 @@ class MFCC_Dataset(Dataset):
         bottom = self._get_bottom(idx)
         idx_from = str(1 + (idx*self.occ_len) - (bottom*self.occ_len))
         idx_to = str((idx*self.occ_len) + self.occ_len - (bottom*self.occ_len))
-        # previous_bucket_len = sum(self.bucket_bottom(i) for i in range(self.batch_n[idx]))
-        # print(f"previous_len: {previous_bucket_len}")
-        # print(f"buckets: {self.bucket_bottom}")
-        # print(f'DEBUG: bucket  {b}')
-        # print(f"bottom: {bottom}")
-                                
-        # print(f"from: {idx_from}; to: {idx_to}")
 
         for i in b:
-
-            # self.cursor.execute('select feats from ' + i + ' where ID Between ' + idx_from + ' and ' + idx_to)
             aux_cursor.execute('select feats from ' + i + ' where ID Between ' + idx_from + ' and ' + idx_to)
 
-            # res.append(self.cursor.fetchall())
             res.append(aux_cursor.fetchall())
 
-        # print(f"results {res}")
         r = torch.Tensor(res).reshape(self.batch_size, self.occ_len, -1)
         aux_con.close()
         return r
-
-
 
     def __len__(self):
         return self.batch_count
 
     def __del__(self):
         print("closing connection to db")
-        # self.con.close()
+        self.con.close()
