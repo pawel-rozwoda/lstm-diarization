@@ -15,8 +15,8 @@ class MFCC_Dataset(Dataset):
         returns list of speaker_ids in descending speech length like: 
         ['mfcc_5', 'mfcc_47', 'mfcc_12', ... etc]
 
-        lengths = [4845, 4756, 4512, 4205, 4123, ... ] 
-        batch_n = [0,0,0,0,0,1,1,1,1,2,2,3]
+        lengths = [4845, 4756, 4512, 4205, ... ] 
+        batch_n = [0,0,0,0,0,1,1,1,1,2,2,3, ...]
         """
 
 
@@ -32,8 +32,11 @@ class MFCC_Dataset(Dataset):
         return list(aux)
 
     def prepare_batches(self, sorted_speakers):
+        """
+
+        """
         s=0
-        for i in range(len(sorted_speakers)//self.batch_size):
+        for i in range(len(sorted_speakers)//self.batch_size): # or bucket_count
             bucket_speakers = sorted_speakers[i*self.batch_size : (i+1)*self.batch_size]
             self.bucket.append( bucket_speakers )
             last = self.bucket[-1][-1]

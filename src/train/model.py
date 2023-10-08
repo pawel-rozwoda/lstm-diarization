@@ -17,16 +17,18 @@ class LSTM_Diarization(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers 
         self.lstm_layer = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_layers, batch_first=True)
-        self.linear = nn.Linear(768, 256)
-        # self.linear1 = nn.Linear(768, 512)
-        # self.linear2 = nn.Linear(512, 256)
-        self.window_size=40
-        self.shift = 20
+        #self.linear = nn.Linear(768, 256)
+        self.linear1 = nn.Linear(768, 512)
+        self.linear2 = nn.Linear(512, 256)
+        # self.window_size=40
+        # self.shift = 20
+        self.window_size=25
+        self.shift = 10
         self.w = torch.nn.Parameter(torch.tensor(init_w))
         self.b = torch.nn.Parameter(torch.tensor(init_b))
 
-        self.w.requires_grad = False
-        self.b.requires_grad = False
+        self.w.requires_grad = True
+        self.b.requires_grad = True
 
         self.train = train
         
@@ -48,7 +50,8 @@ class LSTM_Diarization(nn.Module):
         out = out[:, -1, :]
         """ last outputs """ 
 
-        out = self.linear(out) 
+        out = self.linear1(out) 
+        out = self.linear2(out)
 
         out = out.reshape(spk_count, -1, 256)
 
@@ -57,9 +60,6 @@ class LSTM_Diarization(nn.Module):
             norm, stack, average """
         embeddings = get_embeddings(out) 
         """ end embeddings """
-
-
-
 
         if self.train:
          

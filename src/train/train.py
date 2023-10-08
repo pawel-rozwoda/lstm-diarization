@@ -4,7 +4,7 @@ sys.path.append('../')
 from model import LSTM_Diarization
 from torch.utils.data import Subset, DataLoader, RandomSampler
 import torch
-from db_load import MFCC_Dataset, dataset_split, MFCC_Dataset
+from db_load import MFCC_Dataset, MFCC_Dataset
 from tqdm import tqdm, trange
 from config import DATA_PATH, OUT_TRAIN
 from aux import *
@@ -53,14 +53,14 @@ print('num_workers: ', args.num_workers)
 entire_dataset = MFCC_Dataset(db_name='vox_1', batch_size=64, occ_len=400)
 split_index = entire_dataset.bucket_bottom[-2]
 train_dataset = Subset(entire_dataset, range(split_index))
-train_loader = DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=16)
+train_loader = DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=12)
 
 train_validation_dataset = Subset(train_dataset, range(10))
-train_validation_loader = DataLoader(train_validation_dataset, batch_size=1, shuffle=False, num_workers=16)
+train_validation_loader = DataLoader(train_validation_dataset, batch_size=1, shuffle=False, num_workers=12)
 
 
 test_dataset = Subset(entire_dataset, range(split_index, split_index + 10))
-test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=16)
+test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=12)
 print(f"split on index {split_index}") 
 print(f"len: {len(train_dataset)}")
 
@@ -92,6 +92,7 @@ if args.warm_restart:
 
 iteration = 0
 for epoch in range(args.epochs):
+    print(f"epoch: {epoch}")
     # for k in train_loader:
         # print(k.shape)
 
@@ -103,20 +104,22 @@ for epoch in range(args.epochs):
         batch = batch.to(device) 
         # print(f"get_batch shape {batch.shape}")
         # batch = batch.squeeze(0)
-        pred = model(batch)
 
-        loss = criterion(pred) 
         optimizer.zero_grad()
+        pred = model(batch)
+        loss = criterion(pred) 
         loss.backward()
+        if iter%20:
+            for p in model.parameters():
+                print(p.grad)
         optimizer.step()
 
+        if args.warm_restart:
+            scheduler.step()
+            # scheduler.step((epoch + current_iter) / iters)
 
         # clipping_value = 3 # arbitrary value of your choosing
         # torch.nn.utils.clip_grad_norm(model.parameters(), clipping_value)
-
-    # if epoch==args.epochs-1:
-        # print('saving example pred in epoch = ', epoch)
-        # torch.save(pred.cpu(), out_dir + 's_matrix.pt')
 
         if iter % check_losses_every_n_iterations == 0:
             print(f"{iter//100}, appending losses")
@@ -124,7 +127,7 @@ for epoch in range(args.epochs):
             validation_losses = []
             with torch.no_grad():
                 print("train loss")
-                for batch in tqdm(train_validation_loader):
+                for batch in train_validation_loader:
                     batch = batch.squeeze()
                     batch = batch.to(device).squeeze(0)
                     pred = model(batch)
@@ -132,7 +135,7 @@ for epoch in range(args.epochs):
                     train_losses.append(loss.item()) 
 
                 print("validation loss")
-                for batch in tqdm(test_loader):
+                for batch in test_loader:
                     # batch = train_dataset[i]
                     batch = batch.squeeze() 
                     batch = batch.to(device).squeeze(0)
@@ -152,7 +155,7 @@ for epoch in range(args.epochs):
                 torch.save(model, out_dir + 'best_fit_model.pt')
                 with open(out_dir + 'best_fit_update.txt', 'a') as myfile:
                     myfile.write( str(iter) + '\n')
-
+            
 
         with open(out_dir + 'lrs.csv', "a") as myfile:
             last_lr = 0
@@ -163,6 +166,3 @@ for epoch in range(args.epochs):
 
             myfile.write(str(epoch) + ',' + str(last_lr) + '\n')
 
-        if args.warm_restart:
-            scheduler.step()
-            # scheduler.step((epoch + current_iter) / iters)
