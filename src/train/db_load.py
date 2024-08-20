@@ -43,9 +43,6 @@ class MFCC_Dataset(Dataset):
             self.bucket_bottom.append(s)
             last_idx = self.lengths[last] // self.occ_len
             s += last_idx
-            # print(f"init -> bucket: {bucket_speakers}")
-            # print(f"last: {last}, len = {last_idx} ")
-            # print()
 
             for j in range(last_idx):
                 self.batch_n.append(i)
@@ -90,7 +87,6 @@ class MFCC_Dataset(Dataset):
 
         sorted_speakers = self.sorted_length_speakers()
         self.prepare_batches(sorted_speakers)
-        print(f"bottoms: {self.bucket_bottom}")
 
 
     def __getitem__(self, idx):
@@ -108,7 +104,6 @@ class MFCC_Dataset(Dataset):
 
         for i in b:
             aux_cursor.execute('select feats from ' + i + ' where ID Between ' + idx_from + ' and ' + idx_to)
-
             res.append(aux_cursor.fetchall())
 
         r = torch.Tensor(res).reshape(self.batch_size, self.occ_len, -1)
